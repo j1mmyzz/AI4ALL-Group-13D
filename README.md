@@ -97,6 +97,9 @@ It achieved the highest overall accuracy while remaining simple, interpretable, 
 - NumPy
 - Scikit-learn
 - TF-IDF Vectorizer
+- Logistic Regression
+- Linear SVC
+- Random Forest
 - Kaggle Notebooks
 - GitHub
 
