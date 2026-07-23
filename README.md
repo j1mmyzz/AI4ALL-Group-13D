@@ -1,6 +1,6 @@
 # AI4ALL Group 13D – Depressive Text Detection Trained On Reddit Posts
 
-A Natural Language Processing (NLP) project that detects depressive language patterns in Twitter (X) posts using TF-IDF and machine learning classifiers.
+A Natural Language Processing (NLP) project that detects depressive language patterns in Reddit posts using TF-IDF and machine learning classifiers.
 
 ## Project Overview
 
@@ -26,7 +26,7 @@ Our goal is to develop/train a machine learning model capable of identifying dep
 
 Depression is a growing global mental health concern, and many individuals express their emotions through social media before seeking professional support.
 
-This project explores whether machine learning models can identify depressive language patterns in Twitter posts to assist researchers and mental health professionals. The model is intended for research and educational purposes only and **is not designed to diagnose depression**.
+This project explores whether machine learning models can identify depressive language patterns in Reddit posts to assist researchers and mental health professionals. The model is intended for research and educational purposes only and **is not designed to diagnose depression**.
 
 ---
 
