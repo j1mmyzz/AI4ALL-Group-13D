@@ -48,7 +48,7 @@ Dataset: ["Depression: Reddit Dataset (Cleaned)"](https://www.kaggle.com/dataset
 2. Perform a basic data audit
 3. Clean and preprocess text
 4. Split the dataset into training and testing sets (80/20)
-5. Convert text into numerical features using **TF-IDF**
+5. Convert text into numerical features using TF-IDF
 6. Train multiple machine learning models
 7. Evaluate model performance
 8. Compare model accuracy
