@@ -1,11 +1,12 @@
-# AI4ALL Group 13D – Depression Detection from Twitter Posts
+# AI4ALL Group 13D – Depressive Text Detection Trained On Reddit Posts
+
 A Natural Language Processing (NLP) project that detects depressive language patterns in Twitter (X) posts using TF-IDF and machine learning classifiers.
 
 ## Project Overview
 
 This project was completed as part of the **AI4ALL Ignite Summer 2026** program.
 
-Our goal is to develop a machine learning model capable of identifying depressive language patterns from Twitter (X) posts. The project applies Natural Language Processing (NLP) techniques to classify posts while emphasizing Responsible AI principles such as fairness, transparency, and reproducibility.
+Our goal is to develop/train a machine learning model capable of identifying depressive language patterns from Reddit posts. The project applies Natural Language Processing (NLP) techniques to classify posts while emphasizing Responsible AI principles such as fairness, transparency, and reproducibility.
 
 ---
 
@@ -31,13 +32,14 @@ This project explores whether machine learning models can identify depressive la
 
 ## Dataset
 
-Dataset: Mental Health Twitter Dataset
+Dataset: ["Depression: Reddit Dataset (Cleaned)"](https://www.kaggle.com/datasets/infamouscoder/depression-reddit-cleaned)
 
-- Approximately 20,000 Twitter posts
+- Approximately ~7,000 Reddit posts
 - Binary labels:
   - 0 = Non-depressive
   - 1 = Depressive
 - Used for supervised machine learning classification.
+
 ---
 
 ## Project Workflow
@@ -60,17 +62,17 @@ The following classification models were evaluated:
 
 - Logistic Regression
 - Linear Support Vector Classifier (Linear SVC)
-- Random Forest Classifier
+- Bidirectional Encoder Representations from Transformers (BERT)
 
 ---
 
 ## Results
 
-| Model | Accuracy |
-|-------|---------:|
-| Logistic Regression | **75.60%** |
-| Linear SVC | 75.55% |
-| Random Forest | 73.81% |
+| Model               | Accuracy | Precision | Recall | F1-Score |
+| ------------------- | -------: | --------: | -----: | -------: |
+| Logistic Regression |   94.51% |    94.50% | 94.50% |   94.50% |
+| Linear SVC          |   95.16% |    95.50% | 95.00% |   95.00% |
+| BERT                |   98.43% |    98.50% | 98.50% |   98.50% |
 
 ### Evaluation Metrics
 
@@ -82,11 +84,7 @@ The models were evaluated using:
 - F1-score
 - Confusion Matrix
 
-### Selected Model
-
-**Logistic Regression**
-
-It achieved the highest overall accuracy while remaining simple, interpretable, and computationally efficient.
+**BERT** achieved the highest score on all metrics.
 
 ---
 
@@ -105,54 +103,6 @@ It achieved the highest overall accuracy while remaining simple, interpretable, 
 
 ---
 
-## Repository Structure
-
-```
-AI4ALL-Group-13D/
-│
-├── clean_data.py              # Data cleaning and preprocessing
-├── models.py                  # Machine learning models
-├── Mental-Health-Twitter.csv  # Dataset
-├── README.md
-```
-
----
-
-## Responsible AI Considerations
-
-Our project incorporates Responsible AI principles by:
-
-- Cleaning and auditing the dataset before training
-- Comparing multiple machine learning models
-- Using transparent evaluation metrics
-- Selecting an interpretable model
-- Recognizing dataset limitations and potential bias
-- Emphasizing that the model supports research rather than clinical diagnosis
-
----
-## How to Run
-
-1. Clone the repository.
-2. Open the notebook in Kaggle.
-3. Run all notebook cells from top to bottom.
-4. Review the model evaluation and comparison results.
-
-
-## Future Improvements
-
-Potential improvements include:
-
-- Fine-tuning hyperparameters
-- Testing transformer-based models (e.g., BERT)
-- Expanding the dataset
-- Building a Streamlit web application
-- Improving fairness evaluation across different demographic groups
-- Deploying the model using cloud services
-
 ## Acknowledgements
 
 This project was completed as part of the AI4ALL Ignite Summer 2026 program. We thank our instructors, mentors, and teammates for their support throughout the project.
-
-## License
-
-This repository was created for educational purposes as part of the **AI4ALL Ignite Summer 2026** program.
