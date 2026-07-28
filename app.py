@@ -114,7 +114,9 @@ def show_classifier_page():
                 1: "Depression-associated language",
             }
 
-            st.subheader("Predictions")
+            st.subheader(
+                "Predictions (Non-depressive language or Depression-associated language)"
+            )
             column_1, column_2, column_3 = st.columns(3)
 
             with column_1:
