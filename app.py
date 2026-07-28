@@ -1,3 +1,4 @@
+import os
 from pathlib import Path
 
 import pandas as pd
@@ -40,10 +41,23 @@ def load_models():
         pipeline,
     )
 
+    # because the saved BERT model is too big for github and would cause loading issues anyway on streamlit
+    if BERT_MODEL_PATH.is_dir():
+        bert_model_source = str(BERT_MODEL_PATH)
+    else:
+        bert_model_source = os.getenv("BERT_MODEL_ID")
+
+    if not bert_model_source:
+        raise FileNotFoundError(
+            "The saved BERT model is not included in the deployed app. "
+            "Upload it to Hugging Face and add its repository name as the "
+            "Streamlit secret BERT_MODEL_ID."
+        )
+
     logistic_model = joblib.load(LOGISTIC_MODEL_PATH)
     svc_model = joblib.load(SVC_MODEL_PATH)
-    bert_tokenizer = AutoTokenizer.from_pretrained(BERT_MODEL_PATH)
-    bert_model = AutoModelForSequenceClassification.from_pretrained(BERT_MODEL_PATH)
+    bert_tokenizer = AutoTokenizer.from_pretrained(bert_model_source)
+    bert_model = AutoModelForSequenceClassification.from_pretrained(bert_model_source)
     bert_classifier = pipeline(
         "text-classification",
         model=bert_model,
@@ -62,6 +76,13 @@ def show_classifier_page():
 
     try:
         logistic_model, svc_model, bert_classifier = load_models()
+    except FileNotFoundError as error:
+        st.error(str(error))
+        st.info(
+            "The Results and Documentation pages are still available from "
+            "the sidebar."
+        )
+        st.stop()
     except ModuleNotFoundError as error:
         st.error(
             f"The classifier could not load because {error.name!r} is not "
@@ -131,9 +152,7 @@ def show_results_page():
         st.metric("BERT Accuracy", "98.43%")
 
     st.subheader("Metric Comparisons")
-    st.write(
-        "Each chart compares one metric across the three models."
-    )
+    st.write("Each chart compares one metric across the three models.")
 
     precision_column, recall_column, f1_column = st.columns(3)
 

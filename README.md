@@ -19,11 +19,11 @@ The project is intended for research and education. Its predictions describe lan
    - Test set: 1,530 posts
 3. Trained and evaluated three text-classification approaches.
 
-| Model | Accuracy | Precision | Recall | F1-score |
-| --- | ---: | ---: | ---: | ---: |
-| Logistic Regression | 94.51% | 94.50% | 94.50% | 94.50% |
-| Linear SVC | 95.16% | 95.50% | 95.00% | 95.00% |
-| BERT | 98.43% | 98.50% | 98.50% | 98.50% |
+| Model               | Accuracy | Precision | Recall | F1-score |
+| ------------------- | -------: | --------: | -----: | -------: |
+| Logistic Regression |   94.51% |    94.50% | 94.50% |   94.50% |
+| Linear SVC          |   95.16% |    95.50% | 95.00% |   95.00% |
+| BERT                |   98.43% |    98.50% | 98.50% |   98.50% |
 
 4. BERT achieved the highest overall performance on the held-out test set.
 5. Evaluated each model with accuracy, precision, recall, F1-score, and a confusion matrix.
@@ -53,7 +53,7 @@ After training, we compared each model on the same held-out test set. The progra
 - Linear SVC
 - PyTorch
 - Hugging Face Transformers
-- BERT (`bert-base-uncased`)
+- BERT (bert-base-uncased)
 - Git and GitHub
 - Kaggle
 
