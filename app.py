@@ -1,6 +1,5 @@
 from pathlib import Path
 
-import joblib
 import pandas as pd
 import streamlit as st
 
@@ -34,6 +33,7 @@ st.set_page_config(
 @st.cache_resource
 def load_models():
     # Import Transformers only when the classifier page needs BERT.
+    import joblib
     from transformers import (
         AutoModelForSequenceClassification,
         AutoTokenizer,
