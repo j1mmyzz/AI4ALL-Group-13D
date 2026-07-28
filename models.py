@@ -3,6 +3,7 @@ from pathlib import Path
 import numpy as np
 import pandas as pd
 import torch
+import joblib
 from torch.utils.data import Dataset
 from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.linear_model import LogisticRegression
@@ -146,6 +147,10 @@ def main():
 
     linear_svc_model.fit(X_train, y_train)
     svc_predictions = linear_svc_model.predict(X_test)
+
+    # save models for streamlit since we're not rerunning every time
+    joblib.dump(logistic_model, Path(__file__).with_name("saved_logistic_model.joblib"))
+    joblib.dump(linear_svc_model, Path(__file__).with_name("saved_svc_model.joblib"))
 
     # model results
     print("\nLogistic Regression results:")
