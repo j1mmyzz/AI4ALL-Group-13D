@@ -145,18 +145,18 @@ def show_results_page():
         "1,530 posts."
     )
 
-    logistic_column, svc_column, bert_column = st.columns(3)
-    with logistic_column:
-        st.metric("Logistic Regression Accuracy", "94.51%")
-    with svc_column:
-        st.metric("Linear SVC Accuracy", "95.16%")
-    with bert_column:
-        st.metric("BERT Accuracy", "98.43%")
-
     st.subheader("Metric Comparisons")
     st.write("Each chart compares one metric across the three models.")
 
-    precision_column, recall_column, f1_column = st.columns(3)
+    accuracy_column, precision_column = st.columns(2)
+
+    with accuracy_column:
+        st.markdown("#### Accuracy")
+        st.bar_chart(
+            MODEL_RESULTS[["Accuracy"]],
+            y_label="Accuracy (%)",
+            x_label="Model",
+        )
 
     with precision_column:
         st.markdown("#### Precision")
@@ -165,6 +165,8 @@ def show_results_page():
             y_label="Precision (%)",
             x_label="Model",
         )
+
+    recall_column, f1_column = st.columns(2)
 
     with recall_column:
         st.markdown("#### Recall")
