@@ -1,4 +1,5 @@
 import os
+import math
 from pathlib import Path
 
 import pandas as pd
@@ -23,6 +24,13 @@ CONFUSION_MATRICES = {
     "Linear SVC": [[747, 31], [43, 709]],
     "BERT": [[771, 7], [17, 735]],
 }
+
+AVERAGE_CONFIDENCE = pd.DataFrame(
+    {
+        "Model": ["Logistic Regression", "Linear SVC", "BERT"],
+        "Average confidence": [84.70, 74.66, 99.70],
+    }
+).set_index("Model")
 
 
 st.set_page_config(
@@ -79,14 +87,12 @@ def show_classifier_page():
     except FileNotFoundError as error:
         st.error(str(error))
         st.info(
-            "The Results and Documentation pages are still available from "
-            "the sidebar."
+            "The Results and Documentation pages are still available from the sidebar."
         )
         st.stop()
     except ModuleNotFoundError as error:
         st.error(
-            f"The classifier could not load because {error.name!r} is not "
-            "installed in the Python environment running Streamlit."
+            f"The classifier could not load because {error.name!r} is not installed in the Python environment running Streamlit."
         )
         st.code("python3 -m pip install transformers torch joblib")
         st.stop()
@@ -104,10 +110,23 @@ def show_classifier_page():
             st.error("Enter some text before classifying.")
         else:
             logistic_prediction = int(logistic_model.predict([user_text])[0])
+            logistic_probabilities = logistic_model.predict_proba([user_text])[0]
+            logistic_confidence = float(max(logistic_probabilities))
+
             svc_prediction = int(svc_model.predict([user_text])[0])
+            if hasattr(svc_model, "predict_proba"):
+                svc_probabilities = svc_model.predict_proba([user_text])[0]
+                svc_confidence = float(max(svc_probabilities))
+                svc_confidence_is_calibrated = True
+            else:
+                svc_decision_score = float(svc_model.decision_function([user_text])[0])
+                svc_confidence = 1 / (1 + math.exp(-min(abs(svc_decision_score), 709)))
+                svc_confidence_is_calibrated = False
+
             bert_result = bert_classifier(user_text)[0]
             bert_label = str(bert_result["label"])
             bert_prediction = int(bert_label.split("_")[-1])
+            bert_confidence = float(bert_result["score"])
 
             prediction_names = {
                 0: "Non-depressive language",
@@ -124,17 +143,30 @@ def show_classifier_page():
                     "Logistic Regression",
                     prediction_names[logistic_prediction],
                 )
+                st.caption(f"Model confidence: {logistic_confidence:.2%}")
 
             with column_2:
                 st.metric(
                     "Linear SVC",
                     prediction_names[svc_prediction],
                 )
+                st.caption(f"Model confidence: {svc_confidence:.2%}")
 
             with column_3:
                 st.metric(
                     "BERT",
                     prediction_names[bert_prediction],
+                )
+                st.caption(f"Model confidence: {bert_confidence:.2%}")
+
+            st.info(
+                "Confidence shows how strongly a model favors its prediction. "
+                "It is not the probability that a person has depression."
+            )
+            if not svc_confidence_is_calibrated:
+                st.caption(
+                    "Linear SVC confidence is an uncalibrated score derived "
+                    "from its distance to the decision boundary."
                 )
 
 
@@ -183,6 +215,25 @@ def show_results_page():
             y_label="F1-score (%)",
             x_label="Model",
         )
+
+    st.subheader("Average Model Confidence")
+    st.write(
+        "This graph shows each model's average confidence across the 1,530 "
+        "test posts."
+    )
+    st.bar_chart(
+        AVERAGE_CONFIDENCE,
+        y=["Average confidence"],
+        y_label="Average confidence (%)",
+        x_label="Model",
+    )
+    st.caption(
+        "Confidence is not the same as accuracy. BERT's high average "
+        "confidence does not mean it is correct 99.70% of the time. Linear "
+        "SVC uses an uncalibrated score based on distance from its decision "
+        "boundary, so these values should not be directly compared as true "
+        "probabilities."
+    )
 
     st.subheader("Complete Results")
     formatted_results = MODEL_RESULTS.map(lambda score: f"{score:.2f}%")
@@ -274,6 +325,24 @@ def show_documentation_page():
 **Linear SVC:** A support vector classifier trained on TF-IDF text features.
 
 **BERT:** A transformer model trained directly on the labeled Reddit posts.
+""")
+
+    st.header("Confidence Scores")
+    st.markdown("""
+Confidence describes how strongly a model favors its prediction for one
+specific input. It is separate from accuracy, precision, recall, and F1-score,
+which evaluate performance across the full test set.
+
+- **Logistic Regression:** Uses the highest probability returned by
+  predict_proba().
+- **Linear SVC:** Uses a sigmoid-scaled distance from the decision boundary.
+  This is an uncalibrated confidence score, not a true probability.
+- **BERT:** Uses softmax to convert the model's output scores into values
+  between 0 and 1.
+
+Confidence values are calculated differently for each model and should not be
+directly compared. A high-confidence prediction can still be incorrect, and
+confidence does not represent the probability that a person has depression.
 """)
 
     st.header("Responsible Use")
