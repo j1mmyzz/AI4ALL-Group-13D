@@ -63,8 +63,4 @@ This project was completed as part of AI4ALL Ignite Summer 2026 by:
 
 - Jimmy Zheng
 - Fajar Alim
-- Kaila Grant
-- Addishiwot Dagnew
-- Sahasra Bobbala
 - Shreesh LillyPrabhu
-- Varija Manglik
