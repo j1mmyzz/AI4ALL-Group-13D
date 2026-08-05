@@ -39,6 +39,159 @@ st.set_page_config(
 )
 
 
+def apply_reddit_style():
+    st.markdown(
+        """
+        <style>
+        :root {
+            --reddit-orange: #ff4500;
+            --reddit-blue: #0079d3;
+            --reddit-navy: #1a1a1b;
+            --reddit-background: #f2f4f5;
+            --reddit-border: #d7d9dc;
+            --reddit-muted: #787c7e;
+        }
+
+        .stApp {
+            background-color: var(--reddit-background);
+        }
+
+        [data-testid="stMainBlockContainer"] {
+            max-width: 1120px;
+            margin-top: 1.5rem;
+            margin-bottom: 2rem;
+            padding: 2rem 2.25rem 2.5rem;
+            background-color: #ffffff;
+            border: 1px solid var(--reddit-border);
+            border-radius: 10px;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.06);
+        }
+
+        [data-testid="stMain"] h2,
+        [data-testid="stMain"] h3,
+        [data-testid="stMain"] h4 {
+            color: var(--reddit-navy);
+        }
+
+        [data-testid="stMain"] h2 {
+            margin-top: 2.25rem;
+            padding-bottom: 0.35rem;
+            border-bottom: 1px solid #edeff1;
+        }
+
+        [data-testid="stSidebar"] {
+            background-color: #ffffff;
+            border-right: 1px solid var(--reddit-border);
+        }
+
+        [data-testid="stSidebar"] [role="radiogroup"] label {
+            border-radius: 999px;
+            padding: 0.35rem 0.6rem;
+        }
+
+        [data-testid="stSidebar"] [role="radiogroup"] label:hover {
+            background-color: #f6f7f8;
+            color: var(--reddit-blue);
+        }
+
+        div[data-testid="stMetric"],
+        div[data-testid="stDataFrame"] {
+            background-color: #fdfdfd;
+            border: 1px solid var(--reddit-border);
+            border-radius: 8px;
+            padding: 0.85rem;
+        }
+
+        div[data-testid="stVegaLiteChart"] {
+            overflow: visible;
+            padding: 0.25rem 0.25rem 1.5rem;
+        }
+
+        div[data-testid="stMetric"] {
+            border-top: 4px solid var(--reddit-orange);
+        }
+
+        div[data-testid="stMetricLabel"] {
+            color: var(--reddit-blue);
+            font-weight: 700;
+        }
+
+        .stButton > button {
+            background-color: var(--reddit-orange);
+            border: 1px solid var(--reddit-orange);
+            border-radius: 999px;
+            color: #ffffff;
+            font-weight: 700;
+            padding-left: 1.5rem;
+            padding-right: 1.5rem;
+        }
+
+        .stButton > button:hover {
+            background-color: #e03d00;
+            border-color: #e03d00;
+            color: #ffffff;
+        }
+
+        .stTextArea textarea {
+            background-color: #ffffff;
+            border: 1px solid #878a8c;
+            border-radius: 8px;
+        }
+
+        .stTextArea textarea:focus {
+            border-color: var(--reddit-blue);
+            box-shadow: 0 0 0 1px var(--reddit-blue);
+        }
+
+        div[data-testid="stAlert"] {
+            border-radius: 8px;
+        }
+
+        .reddit-page-header {
+            margin: -0.25rem 0 1.5rem;
+            padding-bottom: 1.15rem;
+            border-bottom: 1px solid #edeff1;
+        }
+
+        .reddit-page-header h1 {
+            margin: 0;
+            color: var(--reddit-navy);
+            font-size: 1.85rem;
+            line-height: 1.2;
+        }
+
+        .reddit-page-header p {
+            margin: 0.2rem 0 0;
+            color: var(--reddit-muted);
+            font-size: 0.88rem;
+        }
+
+        hr {
+            border-color: var(--reddit-border);
+        }
+        </style>
+        """,
+        unsafe_allow_html=True,
+    )
+
+
+apply_reddit_style()
+
+
+def show_page_header(title, subtitle):
+    st.markdown(
+        f"""
+        <div class="reddit-page-header">
+            <div>
+                <h1>{title}</h1>
+                <p>r/depressive_text_detection &nbsp;·&nbsp; {subtitle}</p>
+            </div>
+        </div>
+        """,
+        unsafe_allow_html=True,
+    )
+
+
 @st.cache_resource
 def load_models():
     # Import Transformers only when the classifier page needs BERT.
@@ -75,8 +228,92 @@ def load_models():
     return logistic_model, svc_model, bert_classifier
 
 
+def get_linear_influences(model, text, prediction, limit=5):
+    vectorizer = model.named_steps["tfidf"]
+    classifier = model.named_steps["classifier"]
+    text_features = vectorizer.transform([text])
+    feature_names = vectorizer.get_feature_names_out()
+    contributions = text_features.multiply(classifier.coef_[0]).toarray()[0]
+
+    if prediction == 1:
+        matching_features = [
+            (feature_names[index], contribution)
+            for index, contribution in enumerate(contributions)
+            if contribution > 0
+        ]
+    else:
+        matching_features = [
+            (feature_names[index], abs(contribution))
+            for index, contribution in enumerate(contributions)
+            if contribution < 0
+        ]
+
+    matching_features.sort(key=lambda item: item[1], reverse=True)
+    return [feature for feature, _ in matching_features[:limit]]
+
+
+def get_bert_influences(
+    bert_classifier,
+    text,
+    predicted_label,
+    original_confidence,
+    limit=5,
+    max_words=30,
+):
+    words = text.split()
+    words_to_test = min(len(words), max_words)
+    mask_token = bert_classifier.tokenizer.mask_token
+    masked_texts = []
+
+    for index in range(words_to_test):
+        changed_words = words.copy()
+        if mask_token:
+            changed_words[index] = mask_token
+        else:
+            changed_words.pop(index)
+        masked_texts.append(" ".join(changed_words))
+
+    if not masked_texts:
+        return []
+
+    masked_results = bert_classifier(
+        masked_texts,
+        top_k=None,
+        batch_size=16,
+        truncation=True,
+        max_length=128,
+    )
+
+    word_impacts = {}
+    for index, result in enumerate(masked_results):
+        result_list = result if isinstance(result, list) else [result]
+        masked_score = next(
+            (
+                float(label_result["score"])
+                for label_result in result_list
+                if str(label_result["label"]) == predicted_label
+            ),
+            original_confidence,
+        )
+        impact = original_confidence - masked_score
+        word = words[index].strip(".,!?;:\"'()[]{}").lower()
+
+        if word and impact > word_impacts.get(word, 0):
+            word_impacts[word] = impact
+
+    ranked_words = sorted(
+        word_impacts.items(),
+        key=lambda item: item[1],
+        reverse=True,
+    )
+    return [word for word, impact in ranked_words if impact > 0][:limit]
+
+
 def show_classifier_page():
-    st.title("Depressive Text Detection")
+    show_page_header(
+        "Depressive Text Detection",
+        "Classify one post and inspect the prediction",
+    )
     st.write("Compare predictions from Logistic Regression, Linear SVC, and BERT.")
     st.warning(
         "This project identifies language patterns and is not a medical diagnosis."
@@ -123,7 +360,11 @@ def show_classifier_page():
                 svc_confidence = 1 / (1 + math.exp(-min(abs(svc_decision_score), 709)))
                 svc_confidence_is_calibrated = False
 
-            bert_result = bert_classifier(user_text)[0]
+            bert_result = bert_classifier(
+                user_text,
+                truncation=True,
+                max_length=128,
+            )[0]
             bert_label = str(bert_result["label"])
             bert_prediction = int(bert_label.split("_")[-1])
             bert_confidence = float(bert_result["score"])
@@ -169,9 +410,62 @@ def show_classifier_page():
                     "from its distance to the decision boundary."
                 )
 
+            logistic_influences = get_linear_influences(
+                logistic_model,
+                user_text,
+                logistic_prediction,
+            )
+            svc_influences = get_linear_influences(
+                svc_model,
+                user_text,
+                svc_prediction,
+            )
+            with st.spinner("Estimating BERT word influences..."):
+                bert_influences = get_bert_influences(
+                    bert_classifier,
+                    user_text,
+                    bert_label,
+                    bert_confidence,
+                )
+
+            st.subheader("Influential Words or Phrases")
+            st.write(
+                "These features pushed each model toward the prediction " "shown above."
+            )
+            explanation_columns = st.columns(3)
+            explanations = [
+                ("Logistic Regression", logistic_influences),
+                ("Linear SVC", svc_influences),
+                ("BERT estimate", bert_influences),
+            ]
+
+            for column, (model_name, influences) in zip(
+                explanation_columns,
+                explanations,
+            ):
+                with column:
+                    st.markdown(f"#### {model_name}")
+                    if influences:
+                        st.write(", ".join(influences))
+                    else:
+                        st.write(
+                            "No strong influential features were found in "
+                            "this input."
+                        )
+
+            st.caption(
+                "The linear-model explanations use TF-IDF feature weights. "
+                "The BERT explanation is an estimate based on masking one "
+                "word at a time. These are learned associations, not "
+                "clinical explanations or diagnoses."
+            )
+
 
 def show_results_page():
-    st.title("Model Results")
+    show_page_header(
+        "Model Results",
+        "Overall evaluation on held-out test data",
+    )
     st.write(
         "All three models were evaluated on the same held-out test set of "
         "1,530 posts."
@@ -188,6 +482,7 @@ def show_results_page():
             MODEL_RESULTS[["Accuracy"]],
             y_label="Accuracy (%)",
             x_label="Model",
+            height=380,
         )
 
     with precision_column:
@@ -196,6 +491,7 @@ def show_results_page():
             MODEL_RESULTS[["Precision"]],
             y_label="Precision (%)",
             x_label="Model",
+            height=380,
         )
 
     recall_column, f1_column = st.columns(2)
@@ -206,6 +502,7 @@ def show_results_page():
             MODEL_RESULTS[["Recall"]],
             y_label="Recall (%)",
             x_label="Model",
+            height=380,
         )
 
     with f1_column:
@@ -214,6 +511,7 @@ def show_results_page():
             MODEL_RESULTS[["F1-score"]],
             y_label="F1-score (%)",
             x_label="Model",
+            height=380,
         )
 
     st.subheader("Average Model Confidence")
@@ -226,6 +524,7 @@ def show_results_page():
         y=["Average confidence"],
         y_label="Average confidence (%)",
         x_label="Model",
+        height=380,
     )
     st.caption(
         "Confidence is not the same as accuracy. BERT's high average "
@@ -285,13 +584,72 @@ def show_results_page():
 
 
 def show_documentation_page():
-    st.title("Documentation")
+    show_page_header(
+        "Documentation",
+        "Purpose, methods, limitations, and responsible use",
+    )
 
     st.header("Project Purpose")
     st.write(
         "This AI4ALL Ignite project explores whether natural language "
         "processing models can distinguish depression-associated Reddit "
         "posts from non-depressive posts based on their text."
+    )
+
+    st.header("Real-World Use Case")
+    st.write(
+        "Imagine you're a social scientist, researcher, or social worker "
+        "trying to understand current discussions around mental health. "
+        "There are thousands of Reddit posts every day, making it "
+        "unrealistic to manually read everything. Instead of reading every "
+        "post, the classifier automatically flags posts containing "
+        "depression-associated language so users can prioritize which "
+        "discussions to examine first."
+    )
+
+    st.header("What the Labels Mean")
+    st.markdown("""
+- **Non-depressive language:** The post is more similar to examples labeled
+  `0` in the Reddit training dataset.
+- **Depression-associated language:** The post contains patterns that are more
+  similar to examples labeled `1` in the training dataset.
+
+These labels describe similarities to the dataset. They do not determine the
+author's emotional state or whether the author has depression. Positive,
+sarcastic, quoted, or supportive posts can still be misclassified when context
+is missing.
+""")
+
+    st.header("Prediction and Evaluation Are Different")
+    st.markdown("""
+- **Classifier page:** Shows what each model predicts for one post, its
+  confidence score, and influential words or phrases.
+- **Results page:** Shows how the models performed across all 1,530 held-out
+  test posts using accuracy, precision, recall, F1-score, and confusion
+  matrices.
+
+A confidence score belongs to one prediction. The evaluation metrics describe
+overall test-set performance and should not be interpreted as confidence in a
+single post.
+""")
+
+    st.header("Why Compare Three Models")
+    st.write(
+        "Logistic Regression provides a simple, interpretable baseline, while "
+        "Linear SVC is effective for high-dimensional TF-IDF text features. "
+        "BERT captures more contextual information and achieved the highest "
+        "test accuracy. The classifier shows all three so users can inspect "
+        "whether the models agree, while the Results page explains why BERT "
+        "was the strongest overall model."
+    )
+
+    st.header("What Happens After Classification")
+    st.write(
+        "The app reports the predicted language category, a model-confidence "
+        "score, and influential words or phrases. These explanations show "
+        "patterns the models learned from the Reddit dataset. They are not "
+        "clinical explanations, and a flagged post should only be treated as "
+        "a possible item for further human review."
     )
 
     st.header("Dataset")
@@ -345,6 +703,22 @@ directly compared. A high-confidence prediction can still be incorrect, and
 confidence does not represent the probability that a person has depression.
 """)
 
+    st.header("Prediction Explanations")
+    st.markdown("""
+After classifying an input, the app displays words or phrases that influenced
+each model's selected label.
+
+- **Logistic Regression and Linear SVC:** The explanation combines each
+  TF-IDF feature value with the coefficient learned by the classifier.
+- **BERT:** The app masks one word at a time and measures how much the score
+  for BERT's selected label decreases. For responsiveness, it tests up to the
+  first 30 words.
+
+These explanations show associations learned from the Reddit training data.
+They do not prove why a person wrote something and are not clinical
+explanations or diagnoses.
+""")
+
     st.header("Responsible Use")
     st.write(
         "The predictions identify language patterns found in the training "
@@ -359,10 +733,7 @@ confidence does not represent the probability that a person has depression.
     )
 
     st.header("Team")
-    st.write(
-        "Jimmy Zheng, Fajar Alim, Kaila Grant, Addishiwot Dagnew, "
-        "Sahasra Bobbala, Shreesh LillyPrabhu, and Varija Manglik"
-    )
+    st.write("Jimmy Zheng, Fajar Alim, and Shreeshkumar Lillyprabhu")
 
 
 page = st.sidebar.radio(
